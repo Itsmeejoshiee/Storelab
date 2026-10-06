@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StoreLab — A/B testing for physical retail</title>
+<style>
+:root{
+  --bg:#f6f7f8; --panel:#fff; --ink:#14212b; --muted:#5f6f7a; --line:#e2e7ea; --accent:#0f8b8d; --accent-ink:#06595b;
+  --good:#16794c; --good-bg:#e3f4ea; --warn:#9a5b00; --warn-bg:#fdf0d8; --bad:#a32727; --bad-bg:#fbe5e5; --info-bg:#e6f1f7;
+  --shadow:0 1px 2px rgba(20,33,43,.06),0 4px 14px rgba(20,33,43,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#0f161b; --panel:#17222a; --ink:#e8eef2; --muted:#9bacb7; --line:#26343e; --accent:#35c0c2; --accent-ink:#8fe3e4;
+  --good:#6fd9a2; --good-bg:#12372a; --warn:#f2bd6a; --warn-bg:#3b2d12; --bad:#f19a9a; --bad-bg:#3d1c1c; --info-bg:#173040;
+  --shadow:none}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+header{background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+.bar{max-width:1240px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.logo{font-weight:800;font-size:20px;letter-spacing:-.02em}
+.logo span{color:var(--accent)}
+.tag{color:var(--muted);font-size:13px}
+.badges{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.badge{font-size:12px;padding:3px 9px;border-radius:99px;background:var(--info-bg);color:var(--accent-ink);white-space:nowrap}
+.badge.warn{background:var(--warn-bg);color:var(--warn)}
+nav{max-width:1240px;margin:0 auto;padding:0 20px;display:flex;gap:4px;overflow-x:auto}
+nav button{background:none;border:0;border-bottom:3px solid transparent;padding:10px 14px;font:inherit;font-weight:600;color:var(--muted);cursor:pointer;white-space:nowrap}
+nav button.on{color:var(--ink);border-bottom-color:var(--accent)}
+nav button:disabled{opacity:.45;cursor:not-allowed}
+nav .n{display:inline-block;width:20px;height:20px;line-height:20px;text-align:center;border-radius:50%;background:var(--line);font-size:12px;margin-right:6px}
+nav button.on .n{background:var(--accent);color:#fff}
+main{max-width:1240px;margin:0 auto;padding:20px}
+section.screen{display:none}
+section.screen.on{display:block}
+h1{font-size:24px;margin:0 0 4px;letter-spacing:-.02em}
+h2{font-size:16px;margin:0 0 10px}
+h3{font-size:14px;margin:0 0 6px}
+.lead{color:var(--muted);margin:0 0 18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:var(--shadow)}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:minmax(0,1.7fr) minmax(280px,1fr)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.kpi b{display:block;font-size:22px;letter-spacing:-.02em}
+.kpi span{color:var(--muted);font-size:12px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.chip{border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:5px 11px;border-radius:99px;font:inherit;font-size:13px;cursor:pointer}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+button.primary{background:var(--accent);color:#fff;border:0;border-radius:10px;padding:11px 20px;font:inherit;font-weight:700;cursor:pointer}
+button.primary:hover{filter:brightness(1.08)}
+button.primary:disabled{opacity:.5;cursor:wait}
+button.ghost{background:none;border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:9px 16px;font:inherit;font-weight:600;cursor:pointer}
+svg.floor{width:100%;height:auto;display:block;border-radius:10px;background:var(--bg)}
+svg text{font-family:inherit}
+.row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px dashed var(--line);font-size:14px}
+.row:last-child{border-bottom:0}
+.row span:first-child{color:var(--muted)}
+.bar2{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin:3px 0 10px}
+.bar2 i{display:block;height:100%;background:var(--accent)}
+.muted{color:var(--muted)}
+.small{font-size:12.5px}
+textarea{width:100%;min-height:110px;font:inherit;font-size:17px;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);resize:vertical}
+input[type=number]{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);width:150px}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+.attempts{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px}
+.att{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px;transition:border-color .3s}
+.att.best{border:2px solid var(--good)}
+.att header{all:unset;display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.att .id{width:26px;height:26px;border-radius:8px;background:var(--accent);color:#fff;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.att .nm{font-weight:700;line-height:1.3;flex:1;margin:0 8px}
+.pill{font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px;white-space:nowrap}
+.pill.qualifies{background:var(--good-bg);color:var(--good)}
+.pill.violates,.pill.rejected,.pill.loses_sales{background:var(--bad-bg);color:var(--bad)}
+.pill.below_goal,.pill.running{background:var(--warn-bg);color:var(--warn)}
+.pill.running{animation:pulse 1.1s infinite}
+@keyframes pulse{50%{opacity:.45}}
+.m{display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:13.5px}
+.m span:nth-child(odd){color:var(--muted)}
+.pos{color:var(--good);font-weight:700}.neg{color:var(--bad);font-weight:700}
+.crit{font-size:13px;background:var(--bg);border-radius:8px;padding:8px 10px}
+.banner{background:var(--good-bg);border:2px solid var(--good);border-radius:14px;padding:16px 18px;margin-bottom:16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.banner.none{background:var(--warn-bg);border-color:var(--warn)}
+.banner h2{margin:0;font-size:19px}
+.diag{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:16px}
+.diag .card{padding:12px 14px;font-size:13.5px}
+.diag b{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent-ink);margin-top:6px}
+pre.trace{margin:0;max-height:180px;overflow:auto;font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;color:var(--muted);background:var(--bg);padding:10px;border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+th{color:var(--muted);font-weight:600;font-size:12px}
+td.r,th.r{text-align:right}
+details summary{cursor:pointer;font-weight:600;margin-bottom:8px}
+.plan h2{margin-top:2px}
+.twocol{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.note{background:var(--info-bg);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--ink)}
+@media (max-width:860px){.g2,.twocol{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="logo">Store<span>Lab</span></div>
+    <div class="tag">Understand the store. Simulate the change. Test what matters.</div>
+    <div class="badges"><span class="badge warn">Synthetic demo data</span><span class="badge" id="planner">planner: …</span></div>
+  </div>
+  <nav id="nav">
+    <button data-s="live" class="on"><span class="n">1</span>Live Store</button>
+    <button data-s="ask"><span class="n">2</span>Ask StoreLab</button>
+    <button data-s="lab"><span class="n">3</span>AI Lab</button>
+    <button data-s="plan" disabled><span class="n">4</span>Experiment Plan</button>
+  </nav>
+</header>
+<main>
+
+<!-- 1 LIVE STORE -->
+<section class="screen on" id="s-live">
+  <h1>Live Store</h1>
+  <p class="lead">Anonymous shopper journeys joined with POS sales. No faces, no identities — only where people move. <span class="muted">(Demo data, generated synthetically.)</span></p>
+  <div class="kpis" id="kpis"></div>
+  <div class="grid g2">
+    <div class="card">
+      <div class="chips" id="heatchips"></div>
+      <div id="livefloor"></div>
+      <div class="legend" id="floorlegend"></div>
+    </div>
+    <div class="grid" style="align-content:start">
+      <div class="card" id="zonecard"></div>
+      <div class="card"><h2>Top shopper flows</h2><div id="flows"></div></div>
+    </div>
+  </div>
+  <div class="grid twocol" style="margin-top:16px">
+    <div class="card"><h2>Journey clusters <span class="muted small">(found by k-means, not labelled by hand)</span></h2><div id="clusters"></div></div>
+    <div class="card"><details><summary>How accurate is the simulator? <span class="muted small" id="calsum"></span></summary><div id="calib"></div>
+      <p class="small muted">Simulated baseline vs. what the fitted model should reproduce from history. Large errors here would invalidate every experiment result below.</p></details></div>
+  </div>
+</section>
+
+<!-- 2 ASK -->
+<section class="screen" id="s-ask">
+  <h1>What do you want to improve?</h1>
+  <p class="lead">Describe the goal in plain language — any language if Gemini is connected. Mention a budget and constraints.</p>
+  <div class="card" style="max-width:860px">
+    <textarea id="objective">Increase snack sales by at least 10%. Don't move refrigeration. Budget ₱30,000. Don't increase checkout congestion.</textarea>
+    <div class="chips" style="margin-top:10px" id="examples"></div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:end;margin-top:6px">
+      <label class="f">Budget override (₱, optional)<input type="number" id="budget" min="0" step="1000" placeholder="from text"></label>
+      <label class="f">Max checkout-load increase (%)<input type="number" id="cong" min="0" step="1" placeholder="from text"></label>
+      <button class="primary" id="go" style="margin-left:auto">Generate experiments →</button>
+    </div>
+    <p class="small muted" style="margin-bottom:0">StoreLab proposes layout changes, a validator enforces physical rules, a simulator estimates the impact on <span id="vpd">1,400</span> visitors/day, and the agent revises until it has a ranked shortlist.</p>
+  </div>
+</section>
+
+<!-- 3 LAB -->
+<section class="screen" id="s-lab">
+  <h1>AI Lab</h1>
+  <p class="lead" id="labgoal">Run a request from “Ask StoreLab” to start.</p>
+  <div id="recbanner"></div>
+  <div class="diag" id="diag"></div>
+  <div class="attempts" id="attempts"></div>
+  <div class="card" style="margin-top:16px"><details><summary>Agent trace <span class="muted small">(every tool call)</span></summary><pre class="trace" id="trace"></pre></details></div>
+</section>
+
+<!-- 4 PLAN -->
+<section class="screen plan" id="s-plan"></section>
+
+</main>
+<script>
+const $=(s,el=document)=>el.querySelector(s), $$=(s,el=document)=>[...el.querySelectorAll(s)];
+const NS='http://www.w3.org/2000/svg';
+const sv=(tag,attrs={},parent)=>{const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e};
+const el=(tag,props={},html='')=>{const e=document.createElement(tag);Object.assign(e,props);if(html)e.innerHTML=html;return e};
+const pct=(x,d=0)=>(x>=0?'+':'')+x.toFixed(d)+'%';
+const peso=n=>'₱'+Math.round(n).toLocaleString();
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const CATCOL={bakery:'#c98a4b',coffee:'#7b5a42',snacks:'#e0a62b',beverages:'#3b82c4',household:'#7a8b99'};
+const VERDICT={qualifies:'✓ Meets goal',violates:'⚠ Breaks constraint',loses_sales:'↘ Loses sales',below_goal:'Below goal',rejected:'✕ Rejected',running:'Simulating…',validating:'Validating…'};
+let STORE, AN, REC=null, GOAL=null, flows=[];
+
+function go(s){$$('section.screen').forEach(x=>x.classList.toggle('on',x.id==='s-'+s));$$('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.s===s));
+  flows.forEach(f=>f.stop());flows=[];if(s==='live')startLive();if(s==='plan'&&REC)startPlanFlows();window.scrollTo(0,0)}
+$('#nav').onclick=e=>{const b=e.target.closest('button');if(b&&!b.disabled)go(b.dataset.s)};
+
+/* ---------- floor plan ---------- */
+function ramp(t){t=Math.max(0,Math.min(1,t));const a=[232,242,243],b=[15,139,141];return `rgb(${a.map((v,i)=>Math.round(v+(b[i]-v)*t)).join(',')})`}
+function drawFloor(host,{layout=STORE.layout,heat=null,onZone=null,mini=false,changed=[]}={}){
+  host.innerHTML='';
+  const W=STORE.width,H=STORE.height;
+  const svg=sv('svg',{viewBox:`-0.2 -0.2 ${W+0.4} ${H+0.4}`,class:'floor'},host);
+  const zg=sv('g',{},svg),dg=sv('g',{},svg),pg=sv('g',{'class':'particles'},svg);
+  const rects={};
+  for(const [id,z] of Object.entries(STORE.zones)){
+    const [x,y,w,h]=z.rect;
+    const kindFill={aisle:'#e9eef0',island:'#f3ecdf',slot:'#f3ecdf',register:'#e6e2f2',gate:'#f1dfdf'}[z.kind];
+    const fill=heat&&heat[id]!==undefined?heat[id]:kindFill;
+    const r=sv('rect',{x,y,width:w,height:h,rx:.25,fill,stroke:z.kind==='slot'||z.kind==='island'?'#b7a98a':'#aab7bf','stroke-width':.06,'stroke-dasharray':z.kind==='slot'||z.kind==='island'?'.25 .15':'none',style:onZone?'cursor:pointer':''},zg);
+    r.dataset.zone=id;rects[id]=r;
+    if(onZone)r.addEventListener('click',()=>onZone(id));
+    if(!mini||w>=3){const t=sv('text',{x:x+.25,y:y+.62,'font-size':mini?.5:.58,fill:'#33454f','font-weight':600,'pointer-events':'none'},zg);t.textContent=mini?z.name.split(' ')[0]:z.name}
+  }
+  const slotN={};
+  for(const d of layout){
+    const z=STORE.zones[d.zone];const [x,y,w,h]=z.rect;
+    const i=slotN[d.zone]=(slotN[d.zone]||0);slotN[d.zone]++;
+    const isNew=changed.some(c=>c.category===d.category&&c.to_zone===d.zone&&((c.type==='add_endcap'&&d.type==='endcap')||(c.type==='add_signage'&&d.type==='signage')||(c.type==='move_display'&&(d.type==='shelf'||d.type==='register'))));
+    const bx=x+.3+i*1.6,by=y+h-.95,bw=d.type==='signage'?.9:1.4;
+    const g=sv('g',{},dg);
+    sv('rect',{x:bx,y:by,width:bw,height:.62,rx:.15,fill:CATCOL[d.category],opacity:d.type==='signage'?.75:1,stroke:isNew?'#e11d48':'#fff','stroke-width':isNew?.12:.05},g);
+    const lab={shelf:'',endcap:'END',signage:'SIGN',register:'REG'}[d.type];
+    const t=sv('text',{x:bx+bw/2,y:by+.44,'font-size':.36,fill:'#fff','text-anchor':'middle','font-weight':700,'pointer-events':'none'},g);
+    t.textContent=(mini?STORE.categories[d.category].name.slice(0,3):STORE.categories[d.category].name.slice(0,5))+(lab?' '+lab[0]:'');
+  }
+  return {svg,pg,rects};
+}
+class Flow{
+  constructor(pg,paths,{max=28,rate=.22,speed=2.6,color='#0f8b8d'}={}){this.pg=pg;this.paths=paths.filter(p=>p.stops&&p.stops.length);this.max=max;this.rate=rate;this.speed=speed;this.color=color;this.ps=[];this.run=false;this.acc=0}
+  jitter(zone,rx=.25){const [x,y,w,h]=STORE.zones[zone].rect;return [x+w*(rx+Math.random()*(1-2*rx)),y+h*(.3+Math.random()*.4)]}
+  spawn(){if(!this.paths.length)return;const p=this.paths[Math.floor(Math.random()*this.paths.length)];
+    const wp=[{p:[1,6],w:0}];p.stops.forEach(([z,d])=>wp.push({p:this.jitter(z),w:Math.min(d/5,3.2)}));
+    const bought=p.bought===undefined?true:(p.bought&&p.bought.length>0);wp.push({p:bought?[18.5,6.2]:[1,6],w:0});
+    const c=sv('circle',{r:.2,fill:bought?this.color:'#9aa8b1',opacity:.9},this.pg);
+    this.ps.push({wp,i:0,pos:[...wp[0].p],wait:0,c})}
+  start(){this.run=true;this.last=performance.now();const tick=t=>{if(!this.run)return;const dt=Math.min((t-this.last)/1000,.1);this.last=t;this.step(dt);requestAnimationFrame(tick)};requestAnimationFrame(tick)}
+  stop(){this.run=false;this.ps.forEach(p=>p.c.remove());this.ps=[]}
+  step(dt){this.acc+=dt;while(this.acc>this.rate&&this.ps.length<this.max){this.acc-=this.rate;this.spawn()}if(this.acc>this.rate)this.acc=0;
+    this.ps=this.ps.filter(p=>{if(p.wait>0){p.wait-=dt}else{const tgt=p.wp[p.i+1];if(!tgt){p.c.remove();return false}
+      const dx=tgt.p[0]-p.pos[0],dy=tgt.p[1]-p.pos[1],d=Math.hypot(dx,dy),s=this.speed*dt;
+      if(d<=s){p.pos=[...tgt.p];p.i++;p.wait=tgt.w}else{p.pos[0]+=dx/d*s;p.pos[1]+=dy/d*s}}
+      p.c.setAttribute('cx',p.pos[0]);p.c.setAttribute('cy',p.pos[1]);return true})}
+}
+
+/* ---------- screen 1: live store ---------- */
+let heatMetric='visit_rate',selZone='coffee',liveDraw=null;
+function setupLive(){
+  const t=AN.totals;
+  $('#kpis').innerHTML=[[t.journeys.toLocaleString(),'anonymous journeys'],[t.transactions.toLocaleString(),'POS baskets'],[(t.conversion*100).toFixed(1)+'%','visit → purchase'],[peso(t.avg_basket_value),'avg basket'],[peso(t.revenue),'sales in sample']].map(([a,b])=>`<div class="kpi"><b>${a}</b><span>${b}</span></div>`).join('');
+  const metrics=[['visit_rate','Traffic'],['avg_dwell','Dwell'],['conversion','Conversion']];
+  $('#heatchips').innerHTML=metrics.map(([k,l])=>`<button class="chip ${k===heatMetric?'on':''}" data-m="${k}">${l}</button>`).join('')+'<span class="muted small" style="margin-left:auto;align-self:center">click a zone · dots are anonymous shoppers</span>';
+  $('#heatchips').onclick=e=>{const b=e.target.closest('[data-m]');if(!b)return;heatMetric=b.dataset.m;setupLive();startLive()};
+  const core=Object.keys(AN.zones);const vals=core.map(z=>AN.zones[z][heatMetric]);
+  const lo=Math.min(...vals),hi=Math.max(...vals);const heat={};
+  core.forEach(z=>{if(heatMetric==='conversion'&&!AN.zones[z].category){heat[z]='#eceff1';return}heat[z]=ramp((AN.zones[z][heatMetric]-lo)/(hi-lo||1))});
+  $('#floorlegend').innerHTML=`<span><i style="background:${ramp(0)}"></i>low</span><span><i style="background:${ramp(1)}"></i>high (${{visit_rate:'share of shoppers passing',avg_dwell:'avg seconds per stop',conversion:'visitors who buy the zone’s category'}[heatMetric]})</span><span><i style="background:#f3ecdf;border:1px dashed #b7a98a"></i>empty promo slot</span>`;
+  liveDraw=drawFloor($('#livefloor'),{heat,onZone:z=>{selZone=z;showZone()}});
+  showZone();
+  $('#flows').innerHTML=AN.top_flows.slice(0,7).map(f=>`<div class="row"><span>${nm(f.from)} → ${nm(f.to)}</span><b>${(f.p*100).toFixed(0)}%</b></div>`).join('');
+  $('#clusters').innerHTML=`<table><tr><th>Cluster</th><th class="r">Share</th><th class="r">Stops</th><th class="r">Buy rate</th></tr>`+AN.clusters.map(c=>`<tr><td>${esc(c.label)}</td><td class="r">${(c.share*100).toFixed(0)}%</td><td class="r">${c.avg_stops.toFixed(1)}</td><td class="r">${(c.conversion*100).toFixed(0)}%</td></tr>`).join('')+'</table>';
+  const cal=AN.calibration;$('#calsum').textContent=`(mean abs. error ${cal.mean_abs_error_pct.toFixed(1)}%)`;
+  $('#calib').innerHTML=`<table><tr><th>Metric</th><th class="r">History</th><th class="r">Simulated</th><th class="r">Error</th></tr>`+cal.rows.map(r=>`<tr><td>${esc(r.metric)}</td><td class="r">${(r.history*100).toFixed(1)}%</td><td class="r">${(r.simulated*100).toFixed(1)}%</td><td class="r">${pct(r.error_pct,0)}</td></tr>`).join('')+'</table>';
+}
+const nm=id=>id==='checkout'?'Checkout':id==='exit'?'Exit':(STORE.zones[id]?.name||id);
+function showZone(){
+  const z=AN.zones[selZone];
+  liveDraw&&Object.entries(liveDraw.rects).forEach(([id,r])=>{r.setAttribute('stroke-width',id===selZone?.18:.06);r.setAttribute('stroke',id===selZone?'#14212b':(STORE.zones[id].kind==='slot'||STORE.zones[id].kind==='island'?'#b7a98a':'#aab7bf'))});
+  let h=`<h2>${esc(z.name)}</h2><div class="row"><span>Visitors</span><b>${z.visitors.toLocaleString()} (${(z.visit_rate*100).toFixed(0)}%)</b></div><div class="row"><span>Engaged (≥15 s)</span><b>${z.engaged.toLocaleString()}</b></div><div class="row"><span>Avg stop</span><b>${z.avg_dwell.toFixed(0)} s</b></div>`;
+  if(z.category){const f=AN.funnel[selZone],p=f.passed;
+    h+=`<div class="row"><span>Bought ${z.category}</span><b>${z.purchases.toLocaleString()}</b></div><div class="row"><span>Zone conversion</span><b>${(z.conversion*100).toFixed(1)}%</b></div><h3 style="margin-top:12px">Funnel</h3>`+
+    [['Passed',f.passed],['Engaged',f.engaged],['Purchased',f.purchased]].map(([l,v])=>`<div class="small">${l} · ${v.toLocaleString()}</div><div class="bar2"><i style="width:${v/p*100}%"></i></div>`).join('')}
+  else h+=`<p class="small muted">Pass-through space with no product. Shoppers cross it on their way somewhere else — unused selling space.</p>`;
+  $('#zonecard').innerHTML=h;
+}
+function startLive(){flows.forEach(f=>f.stop());flows=[];if(!liveDraw)return;const f=new Flow(liveDraw.pg,AN.sample_paths.map(p=>({stops:p.stops,bought:undefined})),{max:30});f.start();flows.push(f)}
+
+/* ---------- screen 2: ask ---------- */
+const EXAMPLES=[
+ "Increase snack sales by at least 10%. Don't move refrigeration. Budget ₱30,000. Don't increase checkout congestion.",
+ "Increase coffee sales by 12% with a budget of ₱40,000. Keep the checkout queue within 8%.",
+ "Gusto kong dagdagan ng 15% ang benta ng kape. Budget ₱50k. Huwag palalain ang pila sa kahera."];
+$('#examples').innerHTML=EXAMPLES.map((t,i)=>`<button class="chip" data-i="${i}">Example ${i+1}</button>`).join('');
+$('#examples').onclick=e=>{const b=e.target.closest('[data-i]');if(b)$('#objective').value=EXAMPLES[b.dataset.i]};
+$('#go').onclick=runAgent;
+
+/* ---------- screen 3: lab (streaming) ---------- */
+const cards={};
+function resetLab(){$('#recbanner').innerHTML='';$('#diag').innerHTML='';$('#attempts').innerHTML='';$('#trace').textContent='';Object.keys(cards).forEach(k=>delete cards[k]);REC=null;$('#nav [data-s=plan]').disabled=true}
+async function runAgent(){
+  const objective=$('#objective').value.trim();if(!objective)return;
+  resetLab();go('lab');$('#labgoal').textContent='Reading the goal…';$('#go').disabled=true;
+  const body={objective,budget:$('#budget').value?+$('#budget').value:null,max_congestion_pct:$('#cong').value?+$('#cong').value:null};
+  try{
+    const res=await fetch('/api/experiments/stream',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+    const rd=res.body.getReader(),dec=new TextDecoder();let buf='';
+    for(;;){const {done,value}=await rd.read();if(done)break;buf+=dec.decode(value,{stream:true});const lines=buf.split('\n');buf=lines.pop();lines.forEach(l=>l.trim()&&handle(JSON.parse(l)))}
+    if(buf.trim())handle(JSON.parse(buf));
+  }catch(e){$('#labgoal').textContent='Something went wrong: '+e.message}
+  finally{$('#go').disabled=false}
+}
+function trace(s){const t=$('#trace');t.textContent+=s+'\n';t.scrollTop=t.scrollHeight}
+function handle(ev){
+  switch(ev.type){
+  case 'mode':trace('planner: '+ev.planner);if(ev.note)trace('note: '+ev.note);break;
+  case 'goal':GOAL=ev.goal;$('#labgoal').innerHTML=`<b>${esc(GOAL.summary)}</b> <span class="muted small">· goal parsed by ${ev.parser==='gemini'?'Gemini':'offline rules'} · fixed: ${GOAL.fixed_categories.join(', ')||'none'}</span>`;break;
+  case 'trace':trace(`→ ${ev.tool}: ${ev.detail}`);break;
+  case 'diagnosis':$('#diag').innerHTML=ev.items.map(i=>`<div class="card"><b style="margin:0">Observation</b>${esc(i.observation)}<b>Pattern</b>${esc(i.pattern)}<b>Hypothesis</b>${esc(i.hypothesis)}</div>`).join('');break;
+  case 'attempt_start':addCard(ev);break;
+  case 'validation':{const c=cards[ev.id];if(!ev.ok){c.errs=ev.errors}else setPill(ev.id,'running')}break;
+  case 'simulating':setPill(ev.id,'running');break;
+  case 'result':finishCard(ev);break;
+  case 'recommendation':showRec(ev);break;
+  case 'error':$('#labgoal').textContent='Agent error: '+ev.message;trace('ERROR '+ev.message);break;
+  }
+}
+function setPill(id,v){const p=$('.pill',cards[id].node);p.className='pill '+(v==='running'?'running':v);p.textContent=VERDICT[v]}
+function addCard(ev){
+  const node=el('div',{className:'att'});
+  node.innerHTML=`<header><span class="id">${ev.id}</span><span class="nm">${esc(ev.name)}</span><span class="pill running">Validating…</span></header>
+   <div class="small muted">${esc(ev.rationale)}</div><div class="mini"></div><div class="m"></div><div class="crit" style="display:none"></div>`;
+  $('#attempts').appendChild(node);cards[ev.id]={node,ev};
+  const mini=$('.mini',node);
+  drawFloor(mini,{layout:STORE.layout,mini:true,changed:ev.changes}); // preview with baseline until validated layout arrives
+  if(ev.critique_of_previous&&ev.id!=='A'){const c=$('.crit',node);c.style.display='block';c.innerHTML='<b>Lesson from last attempt:</b> '+esc(ev.critique_of_previous)}
+}
+function row(l,v,cls=''){return `<span>${l}</span><span class="${cls}">${v}</span>`}
+function finishCard(ev){
+  const c=cards[ev.id],node=c.node;setPill(ev.id,ev.verdict);
+  if(ev.layout)drawFloor($('.mini',node),{layout:ev.layout,mini:true,changed:c.ev.changes});
+  const m=ev.metrics;let h='';
+  if(m){const t=m.target_sales;h=row(`Target sales`,`${pct(t.pct)} <span class="muted small">(${pct(t.lo)} … ${pct(t.hi)})</span>`,t.pct>=0?'pos':'neg')+row('Total revenue',pct(m.total_revenue.pct,1),m.total_revenue.pct>=0?'pos':'neg')+row('Peak checkout load',pct(m.congestion.pct,1),m.congestion.pct>(GOAL?.max_congestion_pct??5)?'neg':'')+row('Peak wait',pct(m.peak_wait.pct,0))+row('Cost',peso(ev.cost))+(ev.payback_days?row('Payback',`${ev.payback_days.toFixed(0)} days`):'')}
+  else h=row('Cost',peso(ev.cost||0));
+  $('.m',node).innerHTML=h;
+  const cr=$('.crit',node);cr.style.display='block';cr.innerHTML=(cr.innerHTML&&!cr.innerHTML.includes('Verdict')?cr.innerHTML+'<hr style="border:0;border-top:1px solid var(--line)">':'')+'<b>Verdict:</b> '+esc(ev.critique);
+  c.result=ev;
+}
+function showRec(r){
+  REC=r;
+  if(!r.found){$('#recbanner').innerHTML=`<div class="banner none"><div><h2>No safe winner found</h2><div>${esc(r.message)}</div></div></div>`;return}
+  const cur=cards[r.id];if(cur)cur.node.classList.add('best');
+  $('#recbanner').innerHTML=`<div class="banner"><div style="flex:1;min-width:260px"><div class="small" style="font-weight:700;letter-spacing:.06em">STORELAB RECOMMENDS</div><h2>${r.id} — ${esc(r.name)}</h2><div>${esc(r.why)}</div><div class="small muted" style="margin-top:4px">Explanation by ${r.why_source==='gemini'?'Gemini':'offline template'}; numbers come from the simulator.</div></div><button class="primary" id="toplan">View experiment plan →</button></div>`;
+  $('#toplan').onclick=()=>go('plan');
+  renderPlan();$('#nav [data-s=plan]').disabled=false;
+}
+
+/* ---------- screen 4: plan ---------- */
+function renderPlan(){
+  const r=REC,m=r.metrics,p=r.pilot;
+  const ci=m.target_sales;
+  $('#s-plan').innerHTML=`<h1>Experiment plan</h1><p class="lead">Pre-screened in StoreLab. Now validate it with a real store A/B test.</p>
+  <div class="grid g2"><div class="grid" style="align-content:start">
+   <div class="card"><h2>Test</h2><div style="font-size:18px;font-weight:700">${esc(r.name)}</div>
+     <ul style="margin:8px 0 0 18px;padding:0">${r.changes.map(c=>`<li>${({move_display:'Move',add_endcap:'Add end-cap for',add_signage:'Add signage for'})[c.type]} <b>${STORE.categories[c.category].name}</b> → ${nm(c.to_zone)}</li>`).join('')}</ul>
+     <h3 style="margin-top:14px">Why</h3><p style="margin:0">${esc(r.why)}</p></div>
+   <div class="card"><h2>Expected <span class="muted small">(simulated, ${r.assumptions.simulated_days} days × ${r.assumptions.visitors_per_day.toLocaleString()} visitors, 90% interval)</span></h2>
+     <div class="m">${row(GOAL?STORE.categories[GOAL.target_category].name+' sales':'Target sales',`${pct(ci.pct)} <span class="muted small">(${pct(ci.lo)} … ${pct(ci.hi)})</span>`,'pos')}${row('Total revenue',`${pct(m.total_revenue.pct,1)} <span class="muted small">(${pct(m.total_revenue.lo,1)} … ${pct(m.total_revenue.hi,1)})</span>`)}${row('Gross margin',pct(m.gross_margin.pct,1))}${row('Avg basket value',pct(m.basket_value.pct,1))}${row('Peak checkout load',pct(m.congestion.pct,1))}${row('Peak wait',pct(m.peak_wait.pct,0))}</div></div>
+   <div class="card"><h2>Cost & return</h2><div class="m">${row('Estimated cost',peso(r.cost))}${row('Extra gross margin / day',peso(m.margin_delta_per_day))}${row('Payback',r.payback_days?r.payback_days.toFixed(0)+' days':'—')}${row(r.horizon_days+'-day net value',peso(r.net_value),r.net_value>0?'pos':'neg')}</div></div>
+   <div class="card"><h2>Candidates compared</h2><table><tr><th>#</th><th>Experiment</th><th>Verdict</th><th class="r">Sales</th><th class="r">Load</th><th class="r">Cost</th></tr>${r.ranking.map(k=>`<tr><td>${k.id}</td><td>${esc(k.name)}</td><td><span class="pill ${k.verdict}">${VERDICT[k.verdict]||k.verdict}</span></td><td class="r">${k.target_sales_pct==null?'—':pct(k.target_sales_pct)}</td><td class="r">${k.congestion_pct==null?'—':pct(k.congestion_pct,1)}</td><td class="r">${peso(k.cost)}</td></tr>`).join('')}</table></div>
+  </div><div class="grid" style="align-content:start">
+   <div class="card"><h2>Physical pilot</h2><div class="m">${row('Test stores',p.test_stores)}${row('Control stores',p.control_stores)}${row('Duration',p.duration_days+' days')}${row('Primary KPI',esc(p.primary_kpi))}${row('Baseline rate',(p.baseline_rate*100).toFixed(1)+'% of visitors')}${row('Detectable lift',pct(p.min_detectable_lift_pct))}${row('Visitors / arm',p.visitors_needed_per_arm.toLocaleString())}</div>
+     <p class="small" style="margin:10px 0 0"><b>Success rule:</b> ${esc(p.success_rule)}</p><p class="small muted">${esc(p.assumptions)} Secondary KPIs: ${p.secondary_kpis.join(', ')}.</p>
+     <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="primary" id="launch">Launch physical pilot</button><button class="ghost" id="dl">Download brief (.md)</button></div><div id="launched"></div></div>
+   <div class="card"><h2>Shopper flow: before vs. after</h2><div class="small muted" style="margin-bottom:6px">Virtual shoppers from the simulator. Grey = leaves without buying.</div><div id="fb"></div><div id="fa" style="margin-top:8px"></div></div>
+  </div></div>
+  <div class="note" style="margin-top:16px">${esc(r.assumptions.data)} Results are model estimates — the simulator's job is to decide <b>what is worth testing</b>, not to replace the A/B test.</div>`;
+  $('#launch').onclick=()=>{$('#launched').innerHTML=`<div class="note" style="margin-top:10px"><b>Pilot brief ready.</b> Next: pick ${p.test_stores} test + ${p.control_stores} matched control stores, install the change in test stores only, record POS + journeys for ${p.duration_days} days, then feed the actual deltas back into StoreLab to recalibrate the simulator.</div>`};
+  $('#dl').onclick=downloadBrief;
+}
+function startPlanFlows(){
+  flows.forEach(f=>f.stop());flows=[];
+  const a=drawFloor($('#fb'),{layout:STORE.layout,mini:true}),b=drawFloor($('#fa'),{layout:REC.layout,mini:true,changed:REC.changes});
+  [[a,REC.baseline_paths,'#0f8b8d'],[b,REC.paths,'#e0732b']].forEach(([d,paths,col])=>{const f=new Flow(d.pg,paths,{max:24,color:col});f.start();flows.push(f)});
+  [['#fb','Before (baseline layout)'],['#fa','After: '+REC.name]].forEach(([s,t])=>{const d=el('div',{className:'small',style:'font-weight:700;margin-bottom:2px'});d.textContent=t;$(s).prepend(d)});
+}
+function downloadBrief(){
+  const r=REC,m=r.metrics,p=r.pilot;
+  const md=`# StoreLab experiment brief\n\n**Goal:** ${GOAL?.summary||''}\n\n## Experiment\n${r.name}\n${r.changes.map(c=>`- ${c.type}: ${c.category} → ${c.to_zone}`).join('\n')}\n\n## Why\n${r.why}\n\n## Simulated impact (90% interval)\n- Target sales: ${pct(m.target_sales.pct)} (${pct(m.target_sales.lo)} … ${pct(m.target_sales.hi)})\n- Total revenue: ${pct(m.total_revenue.pct,1)}\n- Peak checkout load: ${pct(m.congestion.pct,1)}\n- Cost: ${peso(r.cost)} · payback ${r.payback_days?r.payback_days.toFixed(0)+' days':'n/a'}\n\n## Pilot\n- ${p.test_stores} test + ${p.control_stores} control stores, ${p.duration_days} days\n- Primary KPI: ${p.primary_kpi}\n- ${p.success_rule}\n- ${p.assumptions}\n\n_${r.assumptions.data}_\n`;
+  const a=el('a',{href:URL.createObjectURL(new Blob([md],{type:'text/markdown'})),download:'storelab-experiment-brief.md'});a.click();
+}
+
+/* ---------- boot ---------- */
+(async()=>{
+  const [h,s,a]=await Promise.all(['/api/health','/api/store','/api/analytics'].map(u=>fetch(u).then(r=>r.json())));
+  STORE=s;AN=a;
+  const pl=$('#planner');pl.textContent='planner: '+(h.gemini_live?h.planner:'offline heuristic (no Gemini key)');pl.classList.toggle('warn',!h.gemini_live);
+  $('#vpd').textContent=s.assumptions.visitors_per_day.toLocaleString();
+  setupLive();startLive();
+})();
+</script>
+</body>
+</html>

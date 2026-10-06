@@ -1,0 +1,11 @@
+zone_id,store_id,name,category,polygon,movable
+entrance,demo_store_01,Entrance,,"[0, 4, 2, 4]",False
+bakery,demo_store_01,Bakery,,"[3, 0.5, 5, 3]",True
+coffee,demo_store_01,Coffee,,"[8.5, 0.5, 4, 3]",True
+snacks,demo_store_01,Snacks,,"[13, 0.5, 5, 3]",True
+household,demo_store_01,Household,,"[3, 8.5, 5, 3]",True
+beverages,demo_store_01,Beverages (refrigeration),,"[9, 8.5, 8, 3]",False
+promo_center,demo_store_01,Centre island,,"[9.5, 5, 3, 2]",True
+promo_bakery_exit,demo_store_01,Bakery exit,,"[6.5, 4, 2, 1.8]",True
+promo_bev_end,demo_store_01,Beverage end-cap,,"[13.5, 6.5, 2.5, 1.8]",True
+checkout,demo_store_01,Checkout,,"[17, 4.5, 3, 3.5]",False

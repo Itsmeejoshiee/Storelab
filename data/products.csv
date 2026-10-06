@@ -1,0 +1,6 @@
+sku,category,margin,current_zone,promotion
+bakery_std,bakery,0.45,bakery,
+coffee_std,coffee,0.55,coffee,
+snacks_std,snacks,0.35,snacks,
+beverages_std,beverages,0.3,beverages,
+household_std,household,0.25,household,

@@ -1,0 +1,7 @@
+data/*.avi
+data/*.csv
+data/*.json
+__pycache__
+.pytest_cache
+tests
+cv
